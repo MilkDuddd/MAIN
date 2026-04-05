@@ -1,7 +1,7 @@
 """Global constants and API endpoint registry."""
 
 APP_NAME = "Intel Platform"
-APP_VERSION = "1.0.0"
+APP_VERSION = "2.0.0"
 SETTINGS_DIR = "~/.intel-platform"
 DB_FILENAME = "intel.db"
 
@@ -19,6 +19,14 @@ FCC_ULS_URL       = "https://data.fcc.gov/api/license-view/basicSearch/getLicens
 RELIEFWEB_API     = "https://api.reliefweb.int/v1"
 NUFORC_BASE       = "https://nuforc.org/webreports"
 SAM_GOV_API       = "https://api.sam.gov/opportunities/v2/search"
+ICIJ_API          = "https://offshoreleaks.icij.org/api/search"
+SEC_EDGAR_SEARCH  = "https://efts.sec.gov/LATEST/search-index"
+SEC_EDGAR_CIK     = "https://data.sec.gov/submissions"
+WAYBACK_CDX       = "http://web.archive.org/cdx/search/cdx"
+WIKIPEDIA_API     = "https://en.wikipedia.org/w/api.php"
+FBI_WANTED_API    = "https://api.fbi.gov/wanted/v1/list"
+INTERPOL_API      = "https://ws-public.interpol.int/notices/v1/red-notices"
+OPENALEX_API      = "https://api.openalex.org"
 
 # ── Keyed API endpoints ───────────────────────────────────────────────────────
 SHODAN_API        = "https://api.shodan.io"
@@ -27,6 +35,14 @@ AISSTREAM_WS      = "wss://stream.aisstream.io/v0/stream"
 OPENCORP_API      = "https://api.opencorporates.com/v0.4"
 FEC_API           = "https://api.open.fec.gov/v1"
 ACLED_API         = "https://api.acleddata.com/acled/read"
+PROPUBLICA_API    = "https://api.propublica.org/congress/v1"
+VIRUSTOTAL_API    = "https://www.virustotal.com/api/v3"
+IPINFO_API        = "https://ipinfo.io"
+ABUSEIPDB_API     = "https://api.abuseipdb.com/api/v2"
+OTX_API           = "https://otx.alienvault.com/api/v1"
+GFW_API           = "https://gateway.api.globalfishingwatch.org/v3"
+HIBP_API          = "https://haveibeenpwned.com/api/v3"
+HUNTER_API        = "https://api.hunter.io/v2"
 
 # ── Groq models ───────────────────────────────────────────────────────────────
 GROQ_MODELS = {

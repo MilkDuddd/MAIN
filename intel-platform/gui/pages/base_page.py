@@ -3,6 +3,7 @@
 import subprocess
 import sys
 import threading
+from pathlib import Path
 from typing import Optional, TYPE_CHECKING
 
 import customtkinter as ctk
@@ -63,6 +64,16 @@ class BasePage(ctk.CTkFrame):
                 font=ctk.CTkFont(size=12),
                 text_color=COLORS["text_muted"],
             ).pack(side="left", padx=0, pady=8)
+
+        # Export buttons (right-aligned in header)
+        for fmt, color in [("MD", "#27ae60"), ("CSV", "#f39c12"), ("JSON", COLORS["accent"])]:
+            ctk.CTkButton(
+                header, text=fmt, width=44, height=26,
+                fg_color=color, hover_color=color,
+                text_color="white", font=ctk.CTkFont(size=11),
+                corner_radius=4,
+                command=lambda f=fmt.lower(): self._export(f),
+            ).pack(side="right", padx=4, pady=14)
 
         # Main content split
         self.main_frame = ctk.CTkFrame(self, fg_color=COLORS["content_bg"])
@@ -131,6 +142,25 @@ class BasePage(ctk.CTkFrame):
             font=ctk.CTkFont(size=11, weight="bold"),
             text_color=COLORS["accent"],
         ).pack(anchor="w", padx=12, pady=(16, 2))
+
+    def _export(self, fmt: str):
+        """Export current output panel content to a file."""
+        try:
+            from pathlib import Path
+            from datetime import datetime, timezone
+            from core import settings as cfg
+            text = self.output_box.get("1.0", "end").strip()
+            if not text:
+                return
+            out_dir = cfg.output_dir()
+            ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            page_name = self.PAGE_TITLE.lower().replace(" ", "_")
+            filename = f"{page_name}_{ts}.{fmt}"
+            path = out_dir / filename
+            path.write_text(text, encoding="utf-8")
+            self.app.set_status(f"Exported: {filename}", "success")
+        except Exception as e:
+            self.app.set_status(f"Export failed: {e}", "danger")
 
     def write_output(self, text: str, clear: bool = False):
         """Write text to the output panel."""

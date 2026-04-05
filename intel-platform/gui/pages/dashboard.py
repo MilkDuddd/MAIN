@@ -24,20 +24,27 @@ class DashboardPage(BasePage):
         stats_row = ctk.CTkFrame(scroll, fg_color="transparent")
         stats_row.pack(fill="x", pady=(8, 0))
 
+        self._stat_labels: dict[str, ctk.CTkLabel] = {}
+
         stat_configs = [
-            ("OSINT Records",     "osint",         COLORS["accent"]),
-            ("SIGINT Tracks",     "sigint",         "#f39c12"),
-            ("Geopolitical",      "geo",            "#27ae60"),
-            ("Power Structure",   "power",          "#9b59b6"),
-            ("UAP Sightings",     "uap",            "#e74c3c"),
-            ("Active Alerts",     "alerts",         "#e74c3c"),
+            ("OSINT Records",   "osint",   COLORS["accent"],  "SELECT COUNT(*) FROM whois_records"),
+            ("SIGINT Tracks",   "sigint",  "#f39c12",         "SELECT COUNT(*) FROM flight_tracks"),
+            ("Geopolitical",    "geo",     "#27ae60",         "SELECT COUNT(*) FROM political_events"),
+            ("Power Structure", "power",   "#9b59b6",         "SELECT COUNT(*) FROM billionaires"),
+            ("UAP Sightings",   "uap",     "#e74c3c",         "SELECT COUNT(*) FROM uap_sightings"),
+            ("Active Alerts",   "alerts",  "#e74c3c",         "SELECT COUNT(*) FROM alerts WHERE acknowledged=0"),
         ]
-        for label, key, color in stat_configs:
-            card = ctk.CTkFrame(stats_row, fg_color=COLORS["panel_bg"], corner_radius=8, width=160, height=80)
+        self._stat_queries = {k: q for _, k, _, q in stat_configs}
+
+        for label, key, color, _ in stat_configs:
+            card = ctk.CTkFrame(stats_row, fg_color=COLORS["panel_bg"], corner_radius=8, width=165, height=88)
             card.pack(side="left", padx=6, pady=4)
             card.pack_propagate(False)
-            ctk.CTkLabel(card, text=label, font=ctk.CTkFont(size=11), text_color=COLORS["text_muted"]).pack(anchor="w", padx=12, pady=(12, 0))
-            ctk.CTkLabel(card, text="—", font=ctk.CTkFont(size=22, weight="bold"), text_color=color).pack(anchor="w", padx=12)
+            ctk.CTkLabel(card, text=label, font=ctk.CTkFont(size=11),
+                         text_color=COLORS["text_muted"]).pack(anchor="w", padx=12, pady=(10, 0))
+            val_label = ctk.CTkLabel(card, text="…", font=ctk.CTkFont(size=24, weight="bold"), text_color=color)
+            val_label.pack(anchor="w", padx=12)
+            self._stat_labels[key] = val_label
 
         # Quick launch row
         self._section_label_full(scroll, "Quick Actions")
@@ -50,6 +57,7 @@ class DashboardPage(BasePage):
             ("Latest UAP News",    ["uap", "news", "--refresh"]),
             ("Live Flights",       ["sigint", "flights", "--live"]),
             ("Feed Status",        ["feed", "status"]),
+            ("AI Analyst",         ["ask", "Summarize the latest geopolitical developments."]),
         ]
         for label, cmd in quick_actions:
             ctk.CTkButton(
@@ -76,23 +84,25 @@ class DashboardPage(BasePage):
         )
         self.feed_box.pack(fill="x", padx=4, pady=4)
 
-        # About / status
+        # Platform info
         self._section_label_full(scroll, "Platform Status")
         info = ctk.CTkFrame(scroll, fg_color=COLORS["panel_bg"], corner_radius=8)
         info.pack(fill="x", padx=4, pady=4)
         now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         ctk.CTkLabel(
             info,
-            text=f"Intel Platform v1.0  |  Initialized: {now}\n"
-                 "Data sources: Wikidata • GDELT • OFAC • OpenSky • NUFORC • FEC • OpenCorporates\n"
-                 "AI: Groq LLaMA-3.3-70B  |  Storage: SQLite (WAL mode)",
+            text=f"Intel Platform v2.0  |  Initialized: {now}\n"
+                 "Data sources: Wikidata • GDELT • OFAC • OpenSky • NUFORC • FEC • ICIJ • SEC EDGAR • FBI • Interpol • OpenAlex\n"
+                 "Threat intel: VirusTotal • AlienVault OTX • AbuseIPDB • IPinfo • HIBP • Hunter.io\n"
+                 "AI: Groq LLaMA-3.3-70B  |  Storage: SQLite (WAL mode)  |  GUI: CustomTkinter",
             font=ctk.CTkFont(size=11),
             text_color=COLORS["text_muted"],
             justify="left",
         ).pack(anchor="w", padx=16, pady=12)
 
-        # Load feed items
+        # Load data
         self.after(500, self._load_recent_feed)
+        self.after(800, self._load_stats)
 
     def _section_label_full(self, parent, text: str):
         ctk.CTkLabel(
@@ -104,6 +114,32 @@ class DashboardPage(BasePage):
 
     def _quick_run(self, cmd: list):
         self.run_command(cmd)
+
+    def _load_stats(self):
+        """Background thread: query DB counts and update stat labels."""
+        def _fetch():
+            try:
+                from core import database
+                results = {}
+                for key, query in self._stat_queries.items():
+                    try:
+                        rows = database.execute(query)
+                        results[key] = rows[0][0] if rows else 0
+                    except Exception:
+                        results[key] = "?"
+                self.after(0, lambda r=results: self._update_stat_labels(r))
+            except Exception:
+                pass
+            # Auto-refresh every 30s
+            if self.winfo_exists():
+                self.after(30000, self._load_stats)
+
+        threading.Thread(target=_fetch, daemon=True).start()
+
+    def _update_stat_labels(self, results: dict):
+        for key, val in results.items():
+            if key in self._stat_labels and self._stat_labels[key].winfo_exists():
+                self._stat_labels[key].configure(text=str(val))
 
     def _load_recent_feed(self):
         def _fetch():

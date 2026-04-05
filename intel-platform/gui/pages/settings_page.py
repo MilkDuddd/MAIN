@@ -26,6 +26,17 @@ class SettingsPage(BasePage):
         self._api_key_row(scroll, "ACLED API Key",        "acled_key",        "...")
         self._api_key_row(scroll, "SAM.gov API Key",      "sam_gov_key",      "...")
 
+        # v2.0 new keys
+        self._section_label_full(scroll, "v2.0 — New API Keys")
+        self._api_key_row(scroll, "ProPublica Congress Key", "propublica_key",  "abc123...")
+        self._api_key_row(scroll, "VirusTotal Key",          "virustotal_key",  "abc123...")
+        self._api_key_row(scroll, "IPinfo Token",            "ipinfo_key",      "abc123...")
+        self._api_key_row(scroll, "AbuseIPDB Key",           "abuseipdb_key",   "abc123...")
+        self._api_key_row(scroll, "AlienVault OTX Key",      "otx_key",         "abc123...")
+        self._api_key_row(scroll, "Global Fishing Watch Key","gfw_key",         "abc123...")
+        self._api_key_row(scroll, "HaveIBeenPwned Key",      "hibp_key",        "abc123...")
+        self._api_key_row(scroll, "Hunter.io Key",           "hunter_key",      "abc123...")
+
         # General settings
         self._section_label_full(scroll, "General Settings")
         self._setting_row(scroll, "Analyst Name",         "analyst_name",     "Intel Analyst")
@@ -64,9 +75,23 @@ class SettingsPage(BasePage):
             "crt.sh (certificate transparency)  — No key needed\n"
             "NUFORC (UAP sightings)             — No key needed (scraping)\n"
             "FCC ULS (RF licenses)              — No key needed\n"
+            "ICIJ Offshore Leaks               — No key needed\n"
+            "SEC EDGAR (US filings)             — No key needed\n"
+            "Wayback Machine / Archive.org      — No key needed\n"
+            "Wikipedia / MediaWiki              — No key needed\n"
+            "FBI Wanted + Interpol Red Notices  — No key needed\n"
+            "OpenAlex (250M+ papers)            — No key needed\n"
             "ACLED (conflict data)              — Free registration required\n"
             "SAM.gov (gov contracts)            — Free API key required\n"
             "FEC (political donations)          — Free API key required\n"
+            "ProPublica Congress                — Free API key (instant)\n"
+            "VirusTotal                         — Free: 500 lookups/day\n"
+            "IPinfo                             — Free: 50,000/month\n"
+            "AbuseIPDB                          — Free: 1,000/day\n"
+            "AlienVault OTX                     — Free: 10,000 req/hour\n"
+            "Global Fishing Watch               — Free research account\n"
+            "HaveIBeenPwned                     — Domain: free; Email: $3.50/mo\n"
+            "Hunter.io                          — Free: 25 lookups/month\n"
         )
         info.configure(state="disabled")
         info.pack(fill="x", padx=4, pady=4)

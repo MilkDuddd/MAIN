@@ -51,5 +51,8 @@ python-dateutil>=2.9.0
 # ── Data visualization (optional, used by correlation graph) ─────────────────
 matplotlib>=3.9.0
 
+# ── Map widget (Intelligence Map page) ───────────────────────────────────────
+tkintermapview>=0.3.0
+
 # ── Optional: packaging for standalone exe ───────────────────────────────────
 # pyinstaller>=6.0.0

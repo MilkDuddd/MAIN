@@ -381,6 +381,194 @@ CREATE TABLE IF NOT EXISTS alerts (
     acknowledged    INTEGER DEFAULT 0,
     created_at      TEXT NOT NULL
 );
+
+-- ── v2.0 New tables ───────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS offshore_entities (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    icij_node_id    TEXT UNIQUE,
+    name            TEXT NOT NULL,
+    entity_type     TEXT,
+    jurisdiction    TEXT,
+    country_codes   TEXT,
+    linked_to       TEXT,
+    data_source     TEXT,
+    valid_until     TEXT,
+    collected_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_offshore_name ON offshore_entities(name);
+CREATE INDEX IF NOT EXISTS idx_offshore_source ON offshore_entities(data_source);
+
+CREATE TABLE IF NOT EXISTS offshore_relationships (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_node_id  TEXT NOT NULL,
+    target_node_id  TEXT NOT NULL,
+    rel_type        TEXT,
+    start_date      TEXT,
+    end_date        TEXT,
+    collected_at    TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sec_filings (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    accession_no    TEXT UNIQUE,
+    cik             TEXT,
+    company_name    TEXT,
+    form_type       TEXT,
+    filed_date      TEXT,
+    period_of_report TEXT,
+    description     TEXT,
+    document_url    TEXT,
+    full_text_snippet TEXT,
+    collected_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sec_company ON sec_filings(company_name);
+CREATE INDEX IF NOT EXISTS idx_sec_form ON sec_filings(form_type);
+CREATE INDEX IF NOT EXISTS idx_sec_date ON sec_filings(filed_date);
+
+CREATE TABLE IF NOT EXISTS wayback_snapshots (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    url             TEXT NOT NULL,
+    timestamp       TEXT NOT NULL,
+    status_code     TEXT,
+    mime_type       TEXT,
+    digest          TEXT,
+    snapshot_url    TEXT,
+    collected_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_wayback_url ON wayback_snapshots(url);
+
+CREATE TABLE IF NOT EXISTS academic_papers (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    paper_id        TEXT UNIQUE,
+    title           TEXT NOT NULL,
+    authors         TEXT,
+    institutions    TEXT,
+    publication_year INTEGER,
+    journal         TEXT,
+    doi             TEXT,
+    abstract        TEXT,
+    cited_by_count  INTEGER,
+    funding_sources TEXT,
+    open_access_url TEXT,
+    collected_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_papers_title ON academic_papers(title);
+CREATE INDEX IF NOT EXISTS idx_papers_year ON academic_papers(publication_year);
+
+CREATE TABLE IF NOT EXISTS wanted_persons (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    list_source     TEXT NOT NULL,
+    notice_id       TEXT UNIQUE,
+    full_name       TEXT NOT NULL,
+    aliases         TEXT,
+    nationality     TEXT,
+    date_of_birth   TEXT,
+    sex             TEXT,
+    charges         TEXT,
+    reward_text     TEXT,
+    image_url       TEXT,
+    details_url     TEXT,
+    collected_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_wanted_name ON wanted_persons(full_name);
+CREATE INDEX IF NOT EXISTS idx_wanted_source ON wanted_persons(list_source);
+
+CREATE TABLE IF NOT EXISTS congress_members (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id       TEXT UNIQUE,
+    full_name       TEXT NOT NULL,
+    party           TEXT,
+    state           TEXT,
+    chamber         TEXT,
+    district        TEXT,
+    in_office       INTEGER,
+    dw_nominate     REAL,
+    twitter_account TEXT,
+    url             TEXT,
+    collected_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_congress_name ON congress_members(full_name);
+CREATE INDEX IF NOT EXISTS idx_congress_state ON congress_members(state);
+
+CREATE TABLE IF NOT EXISTS congress_votes (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    vote_id         TEXT UNIQUE,
+    member_id       TEXT NOT NULL,
+    member_name     TEXT,
+    congress        INTEGER,
+    bill_id         TEXT,
+    bill_title      TEXT,
+    vote_date       TEXT,
+    vote_position   TEXT,
+    result          TEXT,
+    collected_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_votes_member ON congress_votes(member_id);
+CREATE INDEX IF NOT EXISTS idx_votes_bill ON congress_votes(bill_id);
+
+CREATE TABLE IF NOT EXISTS threat_intel (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    indicator       TEXT NOT NULL,
+    indicator_type  TEXT NOT NULL,
+    source          TEXT NOT NULL,
+    malicious_votes INTEGER DEFAULT 0,
+    suspicious_votes INTEGER DEFAULT 0,
+    clean_votes     INTEGER DEFAULT 0,
+    categories      TEXT,
+    last_analysis   TEXT,
+    reputation_score INTEGER,
+    raw_data        TEXT,
+    collected_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_threat_indicator ON threat_intel(indicator);
+CREATE INDEX IF NOT EXISTS idx_threat_type ON threat_intel(indicator_type);
+
+CREATE TABLE IF NOT EXISTS ip_enrichment (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    ip_address      TEXT NOT NULL,
+    hostname        TEXT,
+    city            TEXT,
+    region          TEXT,
+    country         TEXT,
+    loc             TEXT,
+    org             TEXT,
+    asn             TEXT,
+    postal          TEXT,
+    timezone        TEXT,
+    is_vpn          INTEGER,
+    is_proxy        INTEGER,
+    is_tor          INTEGER,
+    is_hosting      INTEGER,
+    abuse_score     INTEGER,
+    abuse_reports   INTEGER,
+    collected_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ip_address ON ip_enrichment(ip_address);
+
+CREATE TABLE IF NOT EXISTS breach_records (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    target          TEXT NOT NULL,
+    breach_name     TEXT NOT NULL,
+    breach_date     TEXT,
+    pwn_count       INTEGER,
+    data_classes    TEXT,
+    description     TEXT,
+    is_verified     INTEGER,
+    is_sensitive    INTEGER,
+    source          TEXT,
+    collected_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_breach_target ON breach_records(target);
+
+CREATE TABLE IF NOT EXISTS module_run_log (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    module          TEXT NOT NULL,
+    last_run_at     TEXT NOT NULL,
+    record_count    INTEGER,
+    status          TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_module_run ON module_run_log(module);
 """
 
 
