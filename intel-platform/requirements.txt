@@ -1,0 +1,55 @@
+# Intel Platform — OSINT/SIGINT Intelligence Suite
+# Install: pip install -r requirements.txt
+
+# ── AI / LLM ──────────────────────────────────────────────────────────────────
+groq>=0.9.0
+
+# ── CLI framework ─────────────────────────────────────────────────────────────
+click>=8.1.0
+
+# ── Terminal UI ───────────────────────────────────────────────────────────────
+rich>=13.0.0
+
+# ── Desktop GUI ───────────────────────────────────────────────────────────────
+customtkinter>=5.2.0
+
+# ── HTTP client ───────────────────────────────────────────────────────────────
+httpx>=0.27.0
+
+# ── Web scraping / HTML parsing ───────────────────────────────────────────────
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+
+# ── DNS enumeration ───────────────────────────────────────────────────────────
+dnspython>=2.6.0
+
+# ── WHOIS ─────────────────────────────────────────────────────────────────────
+python-whois>=0.9.0
+
+# ── Fuzzy entity resolution ───────────────────────────────────────────────────
+rapidfuzz>=3.9.0
+
+# ── Graph analysis (entity relationships) ────────────────────────────────────
+networkx>=3.3
+
+# ── Background scheduling (live feed daemon) ─────────────────────────────────
+APScheduler>=3.10.0
+
+# ── RSS/Atom feed parsing ─────────────────────────────────────────────────────
+feedparser>=6.0.11
+
+# ── WebSocket client (AIS vessel tracking) ───────────────────────────────────
+websocket-client>=1.8.0
+
+# ── XML parsing (OFAC sanctions lists) ───────────────────────────────────────
+# lxml is already listed above; also useful: xmltodict
+xmltodict>=0.13.0
+
+# ── Date/time utilities ───────────────────────────────────────────────────────
+python-dateutil>=2.9.0
+
+# ── Data visualization (optional, used by correlation graph) ─────────────────
+matplotlib>=3.9.0
+
+# ── Optional: packaging for standalone exe ───────────────────────────────────
+# pyinstaller>=6.0.0
