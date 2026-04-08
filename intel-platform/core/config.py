@@ -45,15 +45,14 @@ IPAPI_URL         = "http://ip-api.com/json"          # replaces IPinfo + AbuseI
 URLHAUS_API       = "https://urlhaus-api.abuse.ch/v1/host/"   # replaces VirusTotal
 MALWAREBAZAAR_API = "https://mb-api.abuse.ch/api/v1/"         # replaces VirusTotal hash
 
-# ── Ollama models (local, no API key) ─────────────────────────────────────────
-OLLAMA_MODELS = [
-    "llama3.2",
-    "llama3.1:8b",
-    "mistral",
-    "deepseek-r1:7b",
-    "gemma2:9b",
-]
-DEFAULT_MODEL = "llama3.2"
+# ── Groq models ───────────────────────────────────────────────────────────────
+GROQ_MODELS = {
+    "llama-3.3-70b":  "llama-3.3-70b-versatile",
+    "llama-3.1-8b":   "llama-3.1-8b-instant",
+    "mixtral-8x7b":   "mixtral-8x7b-32768",
+    "gemma2-9b":      "gemma2-9b-it",
+}
+DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
 # ── Scheduler intervals (seconds) ────────────────────────────────────────────
 INTERVAL_FLIGHTS   = 900    # 15 min

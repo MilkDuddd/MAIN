@@ -5,16 +5,13 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
-from .config import SETTINGS_DIR, DB_FILENAME
+from .config import SETTINGS_DIR, DB_FILENAME, DEFAULT_MODEL
 
 SETTINGS_PATH = Path(SETTINGS_DIR).expanduser() / "settings.json"
 DB_PATH       = Path(SETTINGS_DIR).expanduser() / DB_FILENAME
 
 _DEFAULTS: dict[str, Any] = {
-    # ── AI (Ollama — local, no key required) ──────────────────────────────────
-    "ollama_model":          "llama3.2",
-    "ollama_url":            "http://localhost:11434",
-    # ── Optional API keys (all free, app works without them) ─────────────────
+    "groq_api_key":          "",
     "shodan_api_key":        "",
     "newsapi_key":           "",
     "aisstream_key":         "",
@@ -27,7 +24,7 @@ _DEFAULTS: dict[str, Any] = {
     "otx_key":               "",
     "gfw_key":               "",
     "hibp_key":              "",
-    # ── General ───────────────────────────────────────────────────────────────
+    "model":                 DEFAULT_MODEL,
     "analyst_name":          "Intel Analyst",
     "output_dir":            str(Path("~/intel-reports").expanduser()),
     "auto_update":           True,

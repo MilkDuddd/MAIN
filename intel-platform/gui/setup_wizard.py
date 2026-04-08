@@ -1,5 +1,4 @@
 """First-run setup wizard for Intel Platform."""
-import subprocess
 import threading
 import platform
 import shutil
@@ -31,6 +30,8 @@ STEPS = ["Welcome", "AI Engine", "API Keys", "Done"]
 
 _OPTIONAL_KEYS = [
     # (label, settings_key, signup_url, description)
+    ("─── AI ───", None, None, None),
+    ("Groq API Key", "groq_api_key", "https://console.groq.com/keys", "AI analysis (free, generous limits)"),
     ("─── Government Data (All Free) ───", None, None, None),
     ("FEC API Key", "fec_api_key", "https://api.open.fec.gov/developers/", "US political donations"),
     ("SAM.gov Key", "sam_gov_key", "https://sam.gov/content/entity-information", "US government contracts"),
@@ -59,7 +60,6 @@ class SetupWizard(ctk.CTk):
 
         self._current_step = 0
         self._key_entries: dict = {}
-        self._ollama_status = False
 
         self._build_layout()
         self._show_step(0)
@@ -183,7 +183,7 @@ class SetupWizard(ctk.CTk):
         ctk.CTkFrame(info_frame, height=12, fg_color="transparent").pack()
 
         ctk.CTkLabel(f, text="This wizard will guide you through:\n"
-                     "  • Setting up the AI engine (Ollama — runs locally, no cloud)\n"
+                     "  • Setting up your Groq API key for AI analysis\n"
                      "  • Entering optional API keys for extended data sources\n\n"
                      "All keys are stored locally at ~/.intel-platform/settings.json",
                      font=ctk.CTkFont(size=12), text_color=COLORS["muted"],
@@ -196,124 +196,84 @@ class SetupWizard(ctk.CTk):
         except Exception:
             return "Unknown"
 
-    # ── Step 2: Ollama ────────────────────────────────────────────────────────
+    # ── Step 2: Groq ──────────────────────────────────────────────────────────
 
     def _build_ollama(self):
         f = self._step_frame
-        ctk.CTkLabel(f, text="AI Engine — Ollama",
+        ctk.CTkLabel(f, text="AI Engine — Groq",
                      font=ctk.CTkFont(size=22, weight="bold"),
                      text_color=COLORS["text"]).pack(anchor="w", pady=(0, 6))
-        ctk.CTkLabel(f, text="Local LLM — runs on your machine, no API key, no data sent to cloud",
+        ctk.CTkLabel(f, text="Fast cloud LLM — free tier, generous limits, instant setup",
                      font=ctk.CTkFont(size=12), text_color=COLORS["muted"]).pack(anchor="w", pady=(0, 20))
 
-        # Status panel
-        status_frame = ctk.CTkFrame(f, fg_color=COLORS["panel"], corner_radius=8)
-        status_frame.pack(fill="x", pady=(0, 16))
+        key_frame = ctk.CTkFrame(f, fg_color=COLORS["panel"], corner_radius=8)
+        key_frame.pack(fill="x", pady=(0, 16))
 
-        status_row = ctk.CTkFrame(status_frame, fg_color="transparent")
-        status_row.pack(fill="x", padx=16, pady=12)
-        ctk.CTkLabel(status_row, text="Ollama Status:", width=120, anchor="w",
+        row = ctk.CTkFrame(key_frame, fg_color="transparent")
+        row.pack(fill="x", padx=16, pady=12)
+        ctk.CTkLabel(row, text="Groq API Key:", width=130, anchor="w",
                      text_color=COLORS["muted"]).pack(side="left")
-        self._ollama_status_lbl = ctk.CTkLabel(status_row, text="Checking...",
-                                                text_color=COLORS["warning"])
-        self._ollama_status_lbl.pack(side="left")
-        ctk.CTkButton(status_row, text="Refresh", width=80, height=28,
+        self._groq_entry = ctk.CTkEntry(row, placeholder_text="gsk_...",
+                                         fg_color=COLORS["input"], text_color=COLORS["text"],
+                                         show="*", width=260, height=32)
+        from core import settings as cfg
+        existing = cfg.get("groq_api_key", "")
+        if existing:
+            self._groq_entry.insert(0, existing)
+        self._groq_entry.pack(side="left", padx=8)
+
+        btn_row = ctk.CTkFrame(key_frame, fg_color="transparent")
+        btn_row.pack(fill="x", padx=16, pady=(0, 12))
+        ctk.CTkButton(btn_row, text="Get Free Key", width=120, height=32,
+                      fg_color=COLORS["accent2"],
+                      command=lambda: self._open_url("https://console.groq.com/keys")).pack(side="left")
+        ctk.CTkButton(btn_row, text="Test Key", width=90, height=32,
                       fg_color=COLORS["panel"], border_width=1,
                       border_color=COLORS["border"], text_color=COLORS["text"],
-                      command=self._check_ollama).pack(side="right")
+                      command=self._test_groq_key).pack(side="left", padx=8)
+        self._groq_status_lbl = ctk.CTkLabel(btn_row, text="",
+                                              text_color=COLORS["muted"], font=ctk.CTkFont(size=11))
+        self._groq_status_lbl.pack(side="left", padx=4)
 
-        # Model controls
-        model_row = ctk.CTkFrame(status_frame, fg_color="transparent")
-        model_row.pack(fill="x", padx=16, pady=(0, 8))
-        ctk.CTkLabel(model_row, text="Model:", width=120, anchor="w",
-                     text_color=COLORS["muted"]).pack(side="left")
-        self._model_var = ctk.StringVar(value="llama3.2")
-        self._model_dropdown = ctk.CTkOptionMenu(model_row, variable=self._model_var,
-                                                  values=["llama3.2", "llama3.1:8b", "mistral",
-                                                          "deepseek-r1:7b", "gemma2:9b"],
-                                                  fg_color=COLORS["input"],
-                                                  button_color=COLORS["accent2"],
-                                                  width=200)
-        self._model_dropdown.pack(side="left", padx=8)
-
-        pull_row = ctk.CTkFrame(status_frame, fg_color="transparent")
-        pull_row.pack(fill="x", padx=16, pady=(0, 12))
-        ctk.CTkButton(pull_row, text="Pull Model", width=120, height=32,
-                      fg_color=COLORS["accent"],
-                      command=self._pull_model).pack(side="left")
-        self._pull_status = ctk.CTkLabel(pull_row, text="", text_color=COLORS["muted"],
-                                          font=ctk.CTkFont(size=11))
-        self._pull_status.pack(side="left", padx=12)
-
-        # Instructions
         inst_frame = ctk.CTkFrame(f, fg_color=COLORS["panel"], corner_radius=8)
         inst_frame.pack(fill="x")
-        ctk.CTkLabel(inst_frame, text="Don't have Ollama?",
+        ctk.CTkLabel(inst_frame, text="How to get your free Groq key:",
                      font=ctk.CTkFont(size=12, weight="bold"),
                      text_color=COLORS["accent"]).pack(anchor="w", padx=16, pady=(12, 4))
         ctk.CTkLabel(inst_frame,
-                     text="1. Download from: https://ollama.com/download\n"
-                          "2. Install and run — it starts automatically in the background\n"
-                          "3. Click 'Refresh' above, then 'Pull Model' to download llama3.2\n\n"
-                          "Without Ollama, all other platform features still work fully.\n"
-                          "You can install it later — click Next to continue.",
+                     text="1. Click 'Get Free Key' above (opens console.groq.com)\n"
+                          "2. Sign up with Google, GitHub, or email — takes 30 seconds\n"
+                          "3. Go to API Keys → Create API Key\n"
+                          "4. Paste the key above\n\n"
+                          "Without a key, all platform features still work — only the AI analyst\n"
+                          "('Ask' command) requires it. You can add it later in Settings.",
                      font=ctk.CTkFont(size=11), text_color=COLORS["muted"],
                      justify="left").pack(anchor="w", padx=16, pady=(0, 16))
 
-        self._check_ollama()
+    def _test_groq_key(self):
+        key = self._groq_entry.get().strip()
+        if not key:
+            self._groq_status_lbl.configure(text="Enter a key first", text_color=COLORS["warning"])
+            return
+        self._groq_status_lbl.configure(text="Testing...", text_color=COLORS["warning"])
 
-    def _check_ollama(self):
-        def _check():
+        def _test():
             try:
-                import httpx
-                from core import settings
-                url = settings.get("ollama_url", "http://localhost:11434")
-                r = httpx.get(f"{url}/api/tags", timeout=3)
-                ok = r.status_code == 200
-                if ok:
-                    import ollama
-                    client = ollama.Client(host=url)
-                    result = client.list()
-                    models = result.get("models", []) if isinstance(result, dict) else list(result)
-                    names = [m.get("name", "") if isinstance(m, dict) else str(m) for m in models]
-                    if names:
-                        self.after(0, lambda: self._model_dropdown.configure(values=names))
-                        self.after(0, lambda: self._model_var.set(names[0]))
+                from groq import Groq
+                client = Groq(api_key=key)
+                resp = client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[{"role": "user", "content": "Reply with just: OK"}],
+                    max_tokens=5,
+                )
+                ok = bool(resp.choices[0].message.content)
             except Exception:
                 ok = False
-            self._ollama_status = ok
             color = COLORS["success"] if ok else COLORS["error"]
-            text = "Running" if ok else "Not detected"
-            self.after(0, lambda: self._ollama_status_lbl.configure(text=text, text_color=color))
+            text = "Key valid!" if ok else "Invalid key"
+            self.after(0, lambda: self._groq_status_lbl.configure(text=text, text_color=color))
 
-        threading.Thread(target=_check, daemon=True).start()
-
-    def _pull_model(self):
-        model = self._model_var.get()
-        self._pull_status.configure(text=f"Pulling {model}... (may take a few minutes)", text_color=COLORS["warning"])
-
-        def _pull():
-            try:
-                result = subprocess.run(
-                    ["ollama", "pull", model],
-                    capture_output=True, text=True, timeout=600
-                )
-                if result.returncode == 0:
-                    self.after(0, lambda: self._pull_status.configure(
-                        text=f"{model} ready!", text_color=COLORS["success"]))
-                    self._check_ollama()
-                else:
-                    err = result.stderr[:80] if result.stderr else "Failed"
-                    self.after(0, lambda: self._pull_status.configure(
-                        text=f"Error: {err}", text_color=COLORS["error"]))
-            except FileNotFoundError:
-                self.after(0, lambda: self._pull_status.configure(
-                    text="Ollama not installed — see instructions below", text_color=COLORS["error"]))
-            except Exception as e:
-                self.after(0, lambda: self._pull_status.configure(
-                    text=str(e)[:80], text_color=COLORS["error"]))
-
-        threading.Thread(target=_pull, daemon=True).start()
+        threading.Thread(target=_test, daemon=True).start()
 
     # ── Step 3: API Keys ──────────────────────────────────────────────────────
 
@@ -398,12 +358,13 @@ class SetupWizard(ctk.CTk):
         summary_frame = ctk.CTkFrame(f, fg_color=COLORS["panel"], corner_radius=8)
         summary_frame.pack(fill="x", pady=(0, 20))
 
+        groq_key = cfg.get("groq_api_key", "")
         status_items = [
-            ("AI Engine (Ollama)", "Ready" if self._ollama_status else "Install when ready",
-             COLORS["success"] if self._ollama_status else COLORS["warning"]),
-            ("Model", cfg.get("ollama_model", "llama3.2"), COLORS["text"]),
+            ("AI Engine (Groq)", "Key configured" if groq_key else "Add key when ready",
+             COLORS["success"] if groq_key else COLORS["warning"]),
+            ("Groq Model", cfg.get("model", "llama-3.3-70b-versatile"), COLORS["text"]),
             ("API Keys Configured", str(keys_set), COLORS["text"]),
-            ("No-key data sources", "22 sources active", COLORS["success"]),
+            ("No-key data sources", "22 sources always active", COLORS["success"]),
         ]
         for label, value, color in status_items:
             row = ctk.CTkFrame(summary_frame, fg_color="transparent")
@@ -437,18 +398,20 @@ class SetupWizard(ctk.CTk):
                      font=ctk.CTkFont(size=11), text_color=COLORS["muted"]).pack()
 
     def _save_all_keys(self):
-        """Save entered API keys and Ollama model to settings."""
+        """Save entered API keys to settings."""
         from core import settings as cfg
 
-        # Save optional API keys
+        # Save Groq key from step 2
+        if hasattr(self, "_groq_entry"):
+            key = self._groq_entry.get().strip()
+            if key:
+                cfg.set("groq_api_key", key)
+
+        # Save optional API keys from step 3
         for key, entry in self._key_entries.items():
             value = entry.get().strip()
             if value:
                 cfg.set(key, value)
-
-        # Save selected Ollama model
-        if hasattr(self, "_model_var"):
-            cfg.set("ollama_model", self._model_var.get())
 
     def _launch(self):
         """Save final settings and launch main app."""
