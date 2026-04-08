@@ -23,7 +23,7 @@ console = Console()
 # ── Root group ────────────────────────────────────────────────────────────────
 
 @click.group()
-@click.version_option("2.0.0", prog_name="Intel Platform")
+@click.version_option("2.1.0", prog_name="Intel Platform")
 def cli():
     """Intel Platform — OSINT/SIGINT/Geopolitical Intelligence System."""
     database.init_db()
@@ -237,30 +237,25 @@ def osint_wiki(entity: str):
 @osint.command("ip")
 @click.argument("address")
 def osint_ip(address: str):
-    """IP address geolocation, ASN, VPN/proxy detection (IPinfo + AbuseIPDB)."""
-    from modules.osint.ip_intel import lookup_full
+    """IP address geolocation, ISP, proxy/hosting detection (ip-api.com — no key required)."""
+    from modules.osint.ip_intel import lookup_ip
     from rich.panel import Panel
     with console.status(f"[cyan]IP lookup: {address}...[/cyan]"):
-        result = lookup_full(address)
-    info = result.get("ipinfo", {})
-    abuse = result.get("abuse", {})
+        info = lookup_ip(address)
     if "error" in info:
         formatters.error_panel(info["error"])
         return
     content = (
-        f"[bold]IP:[/bold] {address}\n"
+        f"[bold]IP:[/bold] {info.get('ip_address', address)}\n"
         f"[bold]Hostname:[/bold] {info.get('hostname','—')}\n"
         f"[bold]Location:[/bold] {info.get('city','—')}, {info.get('region','—')}, {info.get('country','—')}\n"
-        f"[bold]Coordinates:[/bold] {info.get('loc','—')}\n"
         f"[bold]Organization:[/bold] {info.get('org','—')}\n"
+        f"[bold]ISP:[/bold] {info.get('isp','—')}\n"
         f"[bold]ASN:[/bold] {info.get('asn','—')}\n"
-        f"[bold]Timezone:[/bold] {info.get('timezone','—')}\n"
-        f"[bold]VPN:[/bold] {'Yes' if info.get('is_vpn') else 'No'}  "
         f"[bold]Proxy:[/bold] {'Yes' if info.get('is_proxy') else 'No'}  "
-        f"[bold]Tor:[/bold] {'Yes' if info.get('is_tor') else 'No'}  "
-        f"[bold]Hosting:[/bold] {'Yes' if info.get('is_hosting') else 'No'}\n"
-        f"[bold]Abuse Score:[/bold] {info.get('abuse_score', abuse.get('abuse_score','—'))}/100  "
-        f"[bold]Reports:[/bold] {info.get('abuse_reports', abuse.get('abuse_reports','—'))}"
+        f"[bold]Hosting:[/bold] {'Yes' if info.get('is_hosting') else 'No'}  "
+        f"[bold]Mobile:[/bold] {'Yes' if info.get('is_mobile') else 'No'}\n"
+        f"[bold]Source:[/bold] ip-api.com (free, no key required)"
     )
     console.print(Panel(content, title=f"[bold cyan]IP Intelligence: {address}[/bold cyan]", border_style="cyan"))
 
@@ -269,35 +264,33 @@ def osint_ip(address: str):
 @click.argument("indicator")
 @click.option("--type", "ioc_type", default=None, help="Force type: domain, IPv4, URL, FileHash-SHA256, CVE")
 def osint_ioc(indicator: str, ioc_type):
-    """Threat intelligence lookup — domain/IP/hash/CVE via VirusTotal + OTX."""
-    from modules.osint.virustotal import lookup_domain, lookup_ip, lookup_hash
+    """Threat intelligence lookup — domain/IP/hash via abuse.ch (URLhaus + MalwareBazaar) + OTX."""
+    from modules.osint.threat_lookup import lookup_indicator
     from modules.osint.threat_feeds import lookup_ioc
     from rich.panel import Panel
-    import re
+    import json
 
     with console.status(f"[cyan]Threat intel lookup: {indicator}...[/cyan]"):
-        # OTX lookup
         otx = lookup_ioc(indicator, ioc_type)
-        # VirusTotal lookup
-        vt = {}
-        if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", indicator):
-            vt = lookup_ip(indicator)
-        elif re.match(r"^[0-9a-fA-F]{64}$", indicator):
-            vt = lookup_hash(indicator)
-        elif not indicator.startswith("http"):
-            vt = lookup_domain(indicator)
+        abuse = lookup_indicator(indicator)
 
     lines = [
         f"[bold]Indicator:[/bold] {indicator}",
-        f"[bold]OTX Pulses:[/bold] {otx.get('malicious_votes','—')}",
-        f"[bold]OTX Tags:[/bold] {', '.join(eval(otx.get('categories','[]'))[:5]) if otx.get('categories') else '—'}",
     ]
-    if vt and "error" not in vt:
+    if abuse and "error" not in abuse:
+        try:
+            cats = json.loads(abuse.get("categories", "[]"))
+        except Exception:
+            cats = []
         lines += [
-            f"[bold]VT Malicious:[/bold] {vt.get('malicious_votes',0)}  "
-            f"[bold]Suspicious:[/bold] {vt.get('suspicious_votes',0)}  "
-            f"[bold]Clean:[/bold] {vt.get('clean_votes',0)}",
-            f"[bold]VT Reputation:[/bold] {vt.get('reputation_score',0)}",
+            f"[bold]abuse.ch Malicious URLs:[/bold] {abuse.get('malicious_votes', 0)}",
+            f"[bold]abuse.ch Tags:[/bold] {', '.join(cats[:5]) if cats else '—'}",
+            f"[bold]Source:[/bold] {abuse.get('source', 'URLhaus/MalwareBazaar')} (no key required)",
+        ]
+    if otx and "error" not in otx:
+        lines += [
+            f"[bold]OTX Pulses:[/bold] {otx.get('malicious_votes','—')}",
+            f"[bold]OTX Tags:[/bold] {', '.join(eval(otx.get('categories','[]'))[:5]) if otx.get('categories') else '—'}",
         ]
     console.print(Panel("\n".join(lines), title=f"[bold red]Threat Intel: {indicator}[/bold red]", border_style="red"))
 
@@ -341,28 +334,34 @@ def osint_breaches(target: str):
 @osint.command("email-hunt")
 @click.argument("domain")
 @click.option("--limit", default=25, show_default=True)
-def osint_email_hunt(domain: str, limit: int):
-    """Find email addresses for a domain via Hunter.io."""
-    from modules.osint.email_intel import domain_search
+@click.option("--first", default=None, help="First name for targeted guess")
+@click.option("--last", default=None, help="Last name for targeted guess")
+def osint_email_hunt(domain: str, limit: int, first, last):
+    """Guess email patterns for a domain (local pattern analysis + MX check, no API key)."""
+    from modules.osint.email_intel import domain_search, guess_email_patterns
     from rich.table import Table
-    with console.status(f"[cyan]Email hunt: {domain}...[/cyan]"):
-        result = domain_search(domain, limit=limit)
-    if "error" in result:
-        formatters.error_panel(result["error"])
-        return
-    console.print(f"[bold]Organization:[/bold] {result.get('organization','—')} | "
-                  f"[bold]Pattern:[/bold] {result.get('pattern','—')} | "
-                  f"[bold]Total found:[/bold] {result.get('emails_found',0)}")
+    with console.status(f"[cyan]Email pattern analysis: {domain}...[/cyan]"):
+        if first or last:
+            emails_raw = guess_email_patterns(domain, first or "", last or "")
+            result = {"domain": domain, "organization": "", "pattern": "targeted-guess",
+                      "emails_found": len(emails_raw),
+                      "emails": [{"email": e["email"], "first_name": first or "",
+                                  "last_name": last or "", "position": "Targeted",
+                                  "confidence": e["confidence"]} for e in emails_raw]}
+        else:
+            result = domain_search(domain, limit=limit)
+    console.print(f"[bold]Domain:[/bold] {domain} | "
+                  f"[bold]MX Valid:[/bold] {'Yes' if result.get('mx_valid') else 'No'} | "
+                  f"[bold]Patterns:[/bold] {result.get('emails_found',0)} | "
+                  f"[dim]{result.get('note', 'No external API used')}[/dim]")
     emails = result.get("emails", [])
     if emails:
-        t = Table(title=f"Emails: {domain}", show_lines=False)
+        t = Table(title=f"Email Patterns: {domain}", show_lines=False)
         t.add_column("Email", style="cyan")
-        t.add_column("Name", style="white")
         t.add_column("Position", style="yellow")
         t.add_column("Confidence", style="green", width=12)
         for e in emails:
-            name = f"{e.get('first_name','')} {e.get('last_name','')}".strip()
-            t.add_row(e.get("email",""), name, e.get("position","—")[:40], f"{e.get('confidence',0)}%")
+            t.add_row(e.get("email",""), e.get("position","—")[:40], f"{e.get('confidence',0)}%")
         console.print(t)
 
 

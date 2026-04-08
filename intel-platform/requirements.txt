@@ -1,8 +1,8 @@
 # Intel Platform — OSINT/SIGINT Intelligence Suite
 # Install: pip install -r requirements.txt
 
-# ── AI / LLM ──────────────────────────────────────────────────────────────────
-groq>=0.9.0
+# ── AI / LLM (local, no API key required) ────────────────────────────────────
+ollama>=0.4.0
 
 # ── CLI framework ─────────────────────────────────────────────────────────────
 click>=8.1.0

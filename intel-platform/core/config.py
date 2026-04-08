@@ -1,7 +1,7 @@
 """Global constants and API endpoint registry."""
 
 APP_NAME = "Intel Platform"
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 SETTINGS_DIR = "~/.intel-platform"
 DB_FILENAME = "intel.db"
 
@@ -36,22 +36,24 @@ OPENCORP_API      = "https://api.opencorporates.com/v0.4"
 FEC_API           = "https://api.open.fec.gov/v1"
 ACLED_API         = "https://api.acleddata.com/acled/read"
 PROPUBLICA_API    = "https://api.propublica.org/congress/v1"
-VIRUSTOTAL_API    = "https://www.virustotal.com/api/v3"
-IPINFO_API        = "https://ipinfo.io"
-ABUSEIPDB_API     = "https://api.abuseipdb.com/api/v2"
 OTX_API           = "https://otx.alienvault.com/api/v1"
 GFW_API           = "https://gateway.api.globalfishingwatch.org/v3"
 HIBP_API          = "https://haveibeenpwned.com/api/v3"
-HUNTER_API        = "https://api.hunter.io/v2"
 
-# ── Groq models ───────────────────────────────────────────────────────────────
-GROQ_MODELS = {
-    "llama-3.3-70b":  "llama-3.3-70b-versatile",
-    "llama-3.1-8b":   "llama-3.1-8b-instant",
-    "mixtral-8x7b":   "mixtral-8x7b-32768",
-    "gemma2-9b":      "gemma2-9b-it",
-}
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
+# ── Free / no-key replacements ────────────────────────────────────────────────
+IPAPI_URL         = "http://ip-api.com/json"          # replaces IPinfo + AbuseIPDB
+URLHAUS_API       = "https://urlhaus-api.abuse.ch/v1/host/"   # replaces VirusTotal
+MALWAREBAZAAR_API = "https://mb-api.abuse.ch/api/v1/"         # replaces VirusTotal hash
+
+# ── Ollama models (local, no API key) ─────────────────────────────────────────
+OLLAMA_MODELS = [
+    "llama3.2",
+    "llama3.1:8b",
+    "mistral",
+    "deepseek-r1:7b",
+    "gemma2:9b",
+]
+DEFAULT_MODEL = "llama3.2"
 
 # ── Scheduler intervals (seconds) ────────────────────────────────────────────
 INTERVAL_FLIGHTS   = 900    # 15 min
