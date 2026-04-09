@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS social_presence (
     username        TEXT NOT NULL,
     platform        TEXT NOT NULL,
     profile_url     TEXT,
-    exists          INTEGER NOT NULL,  -- 1=found, 0=not found
+    is_found        INTEGER NOT NULL,  -- 1=found, 0=not found
     status_code     INTEGER,
     collected_at    TEXT NOT NULL
 );

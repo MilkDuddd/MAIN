@@ -73,6 +73,6 @@ def _save(username: str, presences: list[SocialPresence]) -> None:
         for p in presences
     ]
     database.execute_many(
-        "INSERT INTO social_presence (username, platform, profile_url, exists, status_code, collected_at) VALUES (?,?,?,?,?,?)",
+        "INSERT INTO social_presence (username, platform, profile_url, is_found, status_code, collected_at) VALUES (?,?,?,?,?,?)",
         rows,
     )
