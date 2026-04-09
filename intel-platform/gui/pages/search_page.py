@@ -132,9 +132,10 @@ class SearchPage(BasePage):
             return "0 entities found\n"
         lines = [f"{len(results)} entities found\n", "-" * 60]
         for r in results[:30]:
-            name = r.get("canonical_name", "")
-            etype = r.get("entity_type", "")
-            sources = r.get("source_modules", "")
+            # fuzzy_search_entities returns Entity dataclass objects
+            name = getattr(r, "canonical_name", "") or ""
+            etype = getattr(r, "entity_type", "") or ""
+            sources = ", ".join(getattr(r, "source_modules", []) or [])
             lines.append(f"[{etype:12}] {name:40} Sources: {sources}")
         return "\n".join(lines)
 

@@ -91,18 +91,32 @@ class GraphPage(BasePage):
             import matplotlib.pyplot as plt
             from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
             import networkx as nx
-            from modules.correlation.graph_builder import build_graph, get_networkx_graph
+            from modules.correlation.graph_builder import get_networkx_graph
 
-            depth = self.depth_var.get()
-            if focus:
-                G = build_graph([focus], depth=depth)
-            else:
-                G = get_networkx_graph()
+            # Always get the full nx.DiGraph (avoids GraphData vs nx confusion)
+            G = get_networkx_graph()
 
             if G is None or len(G.nodes) == 0:
                 self.after(0, lambda: self.info_label.configure(
                     text="No entities in graph yet. Run 'intel correlate <name>' to add entities."))
                 return
+
+            # If focusing on a specific entity, extract a depth-limited subgraph
+            if focus:
+                depth = self.depth_var.get()
+                focus_nodes = [
+                    n for n in G.nodes
+                    if focus.lower() in G.nodes[n].get("label", str(n)).lower()
+                ]
+                if focus_nodes:
+                    neighbors = set(focus_nodes)
+                    for _ in range(depth):
+                        expanded = set()
+                        for node in neighbors:
+                            expanded.update(G.predecessors(node))
+                            expanded.update(G.successors(node))
+                        neighbors.update(expanded)
+                    G = G.subgraph(neighbors).copy()
 
             self.after(0, lambda: self._render_graph(G))
         except ImportError as e:

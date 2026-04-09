@@ -351,7 +351,7 @@ class SetupWizard(ctk.CTk):
         from core import settings as cfg
         all_s = cfg.all_settings()
         keys_set = sum(1 for k, v in all_s.items()
-                       if k not in ("ollama_model", "ollama_url", "analyst_name", "output_dir",
+                       if k not in ("model", "analyst_name", "output_dir",
                                     "auto_update", "alert_keywords", "tracked_entities")
                        and v)
 

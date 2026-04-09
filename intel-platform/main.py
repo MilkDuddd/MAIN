@@ -288,10 +288,16 @@ def osint_ioc(indicator: str, ioc_type):
             f"[bold]Source:[/bold] {abuse.get('source', 'URLhaus/MalwareBazaar')} (no key required)",
         ]
     if otx and "error" not in otx:
+        try:
+            otx_cats = json.loads(otx.get("categories", "[]"))
+        except Exception:
+            otx_cats = []
         lines += [
             f"[bold]OTX Pulses:[/bold] {otx.get('malicious_votes','—')}",
-            f"[bold]OTX Tags:[/bold] {', '.join(eval(otx.get('categories','[]'))[:5]) if otx.get('categories') else '—'}",
+            f"[bold]OTX Tags:[/bold] {', '.join(otx_cats[:5]) if otx_cats else '—'}",
         ]
+    elif otx and "error" in otx and "No OTX API key" not in otx["error"]:
+        lines.append(f"[bold]OTX:[/bold] {otx['error']}")
     console.print(Panel("\n".join(lines), title=f"[bold red]Threat Intel: {indicator}[/bold red]", border_style="red"))
 
 

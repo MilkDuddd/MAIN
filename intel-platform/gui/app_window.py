@@ -59,7 +59,7 @@ NAV_ITEMS = [
 class IntelPlatformApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Intel Platform — OSINT/SIGINT Intelligence v2.0")
+        self.title("Intel Platform — OSINT/SIGINT Intelligence v2.1")
         self.geometry("1440x900")
         self.minsize(1200, 720)
         self.configure(fg_color=COLORS["content_bg"])
@@ -96,7 +96,7 @@ class IntelPlatformApp(ctk.CTk):
         ).pack(anchor="w")
         ctk.CTkLabel(
             title_frame,
-            text="Intelligence Suite v2.0",
+            text="Intelligence Suite v2.1",
             font=ctk.CTkFont(size=10),
             text_color=COLORS["text_muted"],
         ).pack(anchor="w")

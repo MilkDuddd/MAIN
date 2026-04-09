@@ -93,7 +93,7 @@ class DashboardPage(BasePage):
             info,
             text=f"Intel Platform v2.0  |  Initialized: {now}\n"
                  "Data sources: Wikidata • GDELT • OFAC • OpenSky • NUFORC • FEC • ICIJ • SEC EDGAR • FBI • Interpol • OpenAlex\n"
-                 "Threat intel: VirusTotal • AlienVault OTX • AbuseIPDB • IPinfo • HIBP • Hunter.io\n"
+                 "Threat intel: abuse.ch URLhaus • MalwareBazaar • ip-api.com • AlienVault OTX • HIBP (no keys required)\n"
                  "AI: Groq LLaMA-3.3-70B  |  Storage: SQLite (WAL mode)  |  GUI: CustomTkinter",
             font=ctk.CTkFont(size=11),
             text_color=COLORS["text_muted"],
