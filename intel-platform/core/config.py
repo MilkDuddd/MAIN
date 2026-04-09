@@ -28,22 +28,15 @@ FBI_WANTED_API    = "https://api.fbi.gov/wanted/v1/list"
 INTERPOL_API      = "https://ws-public.interpol.int/notices/v1/red-notices"
 OPENALEX_API      = "https://api.openalex.org"
 
-# ── Keyed API endpoints ───────────────────────────────────────────────────────
+# ── Keyed API endpoints (free registration) ───────────────────────────────────
 SHODAN_API        = "https://api.shodan.io"
 NEWSAPI_URL       = "https://newsapi.org/v2"
 AISSTREAM_WS      = "wss://stream.aisstream.io/v0/stream"
-OPENCORP_API      = "https://api.opencorporates.com/v0.4"
+OPENCORP_API      = "https://api.opencorporates.com/v0.4"   # public, no key needed
 FEC_API           = "https://api.open.fec.gov/v1"
-ACLED_API         = "https://api.acleddata.com/acled/read"
-PROPUBLICA_API    = "https://api.propublica.org/congress/v1"
 OTX_API           = "https://otx.alienvault.com/api/v1"
 GFW_API           = "https://gateway.api.globalfishingwatch.org/v3"
-HIBP_API          = "https://haveibeenpwned.com/api/v3"
-
-# ── Free / no-key replacements ────────────────────────────────────────────────
-IPAPI_URL         = "http://ip-api.com/json"          # replaces IPinfo + AbuseIPDB
-URLHAUS_API       = "https://urlhaus-api.abuse.ch/v1/host/"   # replaces VirusTotal
-MALWAREBAZAAR_API = "https://mb-api.abuse.ch/api/v1/"         # replaces VirusTotal hash
+HIBP_API          = "https://haveibeenpwned.com/api/v3"     # domain check free, no key
 
 # ── Groq models ───────────────────────────────────────────────────────────────
 GROQ_MODELS = {
