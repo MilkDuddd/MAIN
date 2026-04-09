@@ -1,54 +1,44 @@
-"""Conflict event monitoring via ACLED API and ReliefWeb."""
+"""Conflict event monitoring via GDELT and ReliefWeb — no API keys required."""
 
 import hashlib
-import json
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from core import database, http_client, settings
-from core.config import ACLED_API, RELIEFWEB_API
+from core import database, http_client
+from core.config import GDELT_API, RELIEFWEB_API
 from models.geopolitical import ConflictEvent, ConflictResult
 
 
-def fetch_acled(country: Optional[str] = None, days: int = 30) -> list[ConflictEvent]:
-    """Fetch conflict events from ACLED API."""
-    email = settings.get("acled_email", "")
-    key = settings.get("acled_key", "")
-    if not email or not key:
-        return []
-
-    params: dict = {
-        "email": email,
-        "key": key,
-        "limit": 500,
-        "fields": "event_id_cnty|event_date|event_type|country|region|location|latitude|longitude|actor1|actor2|fatalities|notes|source_url",
-    }
+def fetch_gdelt_conflicts(country: Optional[str] = None, days: int = 30) -> list[ConflictEvent]:
+    """Fetch conflict/violence events from GDELT — free, no key required."""
+    query = "conflict violence war protest coup"
     if country:
-        params["country"] = country
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
-    params["event_date"] = cutoff
-    params["event_date_where"] = ">="
-
+        query = f"{country} {query}"
+    params = {
+        "query":      query,
+        "mode":       "ArtList",
+        "maxrecords": "100",
+        "format":     "json",
+        "timespan":   f"{days}d",
+    }
     try:
-        resp = http_client.get(ACLED_API, params=params, source="ACLED", timeout=60)
-        data = resp.json().get("data", [])
+        resp = http_client.get(GDELT_API, params=params, source="GDELT", timeout=45)
+        articles = resp.json().get("articles", [])
         events: list[ConflictEvent] = []
-        for d in data:
+        for a in articles:
+            seen = (a.get("seendate") or "")[:8]
+            try:
+                event_date = datetime.strptime(seen, "%Y%m%d").strftime("%Y-%m-%d") if seen else None
+            except ValueError:
+                event_date = None
+            eid = f"GDELT-{hashlib.md5(a.get('url', str(a)).encode()).hexdigest()[:12]}"
             events.append(ConflictEvent(
-                event_id=f"ACLED-{d.get('event_id_cnty', hashlib.md5(str(d).encode()).hexdigest()[:8])}",
-                source="ACLED",
-                event_date=d.get("event_date"),
-                country=d.get("country"),
-                region=d.get("region"),
-                location=d.get("location"),
-                latitude=_safe_float(d.get("latitude")),
-                longitude=_safe_float(d.get("longitude")),
-                event_type=d.get("event_type"),
-                actor1=d.get("actor1"),
-                actor2=d.get("actor2"),
-                fatalities=_safe_int(d.get("fatalities")),
-                notes=d.get("notes"),
-                source_url=d.get("source_url"),
+                event_id=eid,
+                source="GDELT",
+                event_date=event_date,
+                country=a.get("sourcecountry"),
+                notes=a.get("title"),
+                source_url=a.get("url"),
             ))
         return events
     except Exception:
@@ -56,27 +46,23 @@ def fetch_acled(country: Optional[str] = None, days: int = 30) -> list[ConflictE
 
 
 def fetch_reliefweb(country: Optional[str] = None, days: int = 30) -> list[ConflictEvent]:
-    """Fetch crisis updates from ReliefWeb API."""
+    """Fetch crisis updates from ReliefWeb — free, no key required."""
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     params: dict = {
-        "appname": "intel-platform",
-        "limit": 200,
-        "fields[include][]": ["title", "date", "country", "source"],
-        "filter[field]": "date.created",
-        "filter[value][from]": cutoff,
-        "sort[]": "date.created:desc",
+        "appname":              "intel-platform",
+        "limit":                200,
+        "fields[include][]":    ["title", "date", "country", "source"],
+        "filter[field]":        "date.created",
+        "filter[value][from]":  cutoff,
+        "sort[]":               "date.created:desc",
     }
     if country:
         params["filter[conditions][0][field]"] = "country.name"
         params["filter[conditions][0][value]"] = country
 
     try:
-        resp = http_client.get(
-            f"{RELIEFWEB_API}/reports",
-            params=params,
-            source="ReliefWeb",
-            timeout=45,
-        )
+        resp = http_client.get(f"{RELIEFWEB_API}/reports", params=params,
+                               source="ReliefWeb", timeout=45)
         data = resp.json().get("data", [])
         events: list[ConflictEvent] = []
         for d in data:
@@ -96,24 +82,10 @@ def fetch_reliefweb(country: Optional[str] = None, days: int = 30) -> list[Confl
         return []
 
 
-def _safe_float(v) -> Optional[float]:
-    try:
-        return float(v) if v is not None else None
-    except (ValueError, TypeError):
-        return None
-
-
-def _safe_int(v) -> Optional[int]:
-    try:
-        return int(v) if v is not None else None
-    except (ValueError, TypeError):
-        return None
-
-
 def update_conflicts() -> None:
-    """Scheduled job: refresh conflict events."""
+    """Scheduled job: refresh conflict events from GDELT + ReliefWeb."""
     now = datetime.now(timezone.utc).isoformat()
-    events = fetch_acled(days=3) + fetch_reliefweb(days=3)
+    events = fetch_gdelt_conflicts(days=3) + fetch_reliefweb(days=3)
     if not events:
         return
     rows = [

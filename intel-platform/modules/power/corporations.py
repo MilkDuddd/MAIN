@@ -4,17 +4,14 @@ import json
 from datetime import datetime, timezone
 from typing import Optional
 
-from core import database, http_client, settings
+from core import database, http_client
 from core.config import OPENCORP_API
 from models.power import Corporation, CorpResult
 
 
 def fetch_company(name: str) -> CorpResult:
-    """Search OpenCorporates for a company by name."""
-    key = settings.get("opencorp_key", "")
+    """Search OpenCorporates for a company by name (public API, no key required)."""
     params: dict = {"q": name, "format": "json"}
-    if key:
-        params["api_token"] = key
 
     try:
         resp = http_client.get(
