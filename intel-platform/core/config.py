@@ -38,6 +38,11 @@ OTX_API           = "https://otx.alienvault.com/api/v1"
 GFW_API           = "https://gateway.api.globalfishingwatch.org/v3"
 HIBP_API          = "https://haveibeenpwned.com/api/v3"     # domain check free, no key
 
+# ── Free no-key replacements ──────────────────────────────────────────────────
+IPAPI_URL         = "http://ip-api.com/json"                # replaces IPinfo + AbuseIPDB
+URLHAUS_API       = "https://urlhaus-api.abuse.ch/v1/host/" # replaces VirusTotal
+MALWAREBAZAAR_API = "https://mb-api.abuse.ch/api/v1/"       # hash lookups
+
 # ── Groq models ───────────────────────────────────────────────────────────────
 GROQ_MODELS = {
     "llama-3.3-70b":  "llama-3.3-70b-versatile",
