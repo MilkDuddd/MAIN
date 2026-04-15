@@ -1,9 +1,7 @@
-"""Groq AI engine for intelligence analysis."""
+"""AI engine for intelligence analysis — uses Groq if configured, otherwise unavailable."""
 
 import os
 from typing import Generator, Optional
-
-from groq import Groq
 
 from . import settings
 from .config import DEFAULT_MODEL
@@ -28,11 +26,20 @@ Format responses in Markdown with clear sections. Use tables where they aid clar
 """
 
 
-def _client() -> Groq:
+def _client():
+    try:
+        from groq import Groq
+    except ImportError:
+        raise ValueError(
+            "Groq package not installed. Run: pip install groq\n"
+            "Then set your key: python main.py settings set groq_api_key <key>"
+        )
     key = settings.get("groq_api_key") or os.environ.get("GROQ_API_KEY", "")
     if not key:
         raise ValueError(
-            "No Groq API key configured. Run: intel settings set groq_api_key <key>"
+            "No Groq API key configured.\n"
+            "Get a free key at https://console.groq.com/keys\n"
+            "Then run: python main.py settings set groq_api_key <key>"
         )
     return Groq(api_key=key)
 
