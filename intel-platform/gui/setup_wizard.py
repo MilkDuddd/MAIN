@@ -32,21 +32,16 @@ _OPTIONAL_KEYS = [
     # (label, settings_key, signup_url, description)
     ("─── AI ───", None, None, None),
     ("Groq API Key", "groq_api_key", "https://console.groq.com/keys", "AI analysis (free, generous limits)"),
-    ("─── Government Data (All Free) ───", None, None, None),
+    ("─── Government Data (Free with Registration) ───", None, None, None),
     ("FEC API Key", "fec_api_key", "https://api.open.fec.gov/developers/", "US political donations"),
     ("SAM.gov Key", "sam_gov_key", "https://sam.gov/content/entity-information", "US government contracts"),
-    ("ProPublica Key", "propublica_key", "https://www.propublica.org/datastore/api/propublica-congress-api", "Congress votes & bills"),
-    ("ACLED Email", "acled_email", "https://developer.acleddata.com/", "Conflict event data"),
-    ("ACLED API Key", "acled_key", "https://developer.acleddata.com/", "Conflict event data"),
-    ("─── Research & Threat Intel (All Free) ───", None, None, None),
+    ("─── Research & Threat Intel (Free with Registration) ───", None, None, None),
     ("AlienVault OTX Key", "otx_key", "https://otx.alienvault.com/accounts/signup", "Indicators of compromise"),
     ("Global Fishing Watch Key", "gfw_key", "https://globalfishingwatch.org/our-apis/", "Vessel / IUU fishing intel"),
-    ("HaveIBeenPwned Key", "hibp_key", "https://haveibeenpwned.com/API/Key", "Data breach lookup"),
     ("─── Infrastructure (Free Tier) ───", None, None, None),
     ("Shodan Key", "shodan_api_key", "https://account.shodan.io/", "Internet device scanning"),
     ("NewsAPI Key", "newsapi_key", "https://newsapi.org/register", "News aggregation"),
     ("AISStream Key", "aisstream_key", "https://aisstream.io/", "Vessel AIS tracking"),
-    ("OpenCorporates Key", "opencorp_key", "https://opencorporates.com/api_accounts/new", "Corporate registry"),
 ]
 
 
