@@ -133,12 +133,35 @@ class SetupWizard(ctk.CTk):
             self._btn_next.configure(text="Launch  ", state="disabled")
 
     def _next_step(self):
+        self._save_current_step()
         if self._current_step < len(STEPS) - 1:
             self._show_step(self._current_step + 1)
 
     def _prev_step(self):
+        self._save_current_step()
         if self._current_step > 0:
             self._show_step(self._current_step - 1)
+
+    def _save_current_step(self):
+        """Persist the current step's entries before the frame is destroyed."""
+        from core import settings as cfg
+        if self._current_step == 1:          # Groq key step
+            if hasattr(self, "_groq_entry"):
+                try:
+                    key = self._groq_entry.get().strip()
+                    if key:
+                        cfg.set("groq_api_key", key)
+                except Exception:
+                    pass
+        elif self._current_step == 2:        # Optional API keys step
+            for k, entry in list(self._key_entries.items()):
+                try:
+                    value = entry.get().strip()
+                    if value:
+                        cfg.set(k, value)
+                except Exception:
+                    pass
+            self._key_entries.clear()
 
     # ── Step 1: Welcome ───────────────────────────────────────────────────────
 
@@ -334,9 +357,6 @@ class SetupWizard(ctk.CTk):
 
     def _build_done(self):
         f = self._step_frame
-
-        # Save all entered keys before showing summary
-        self._save_all_keys()
 
         ctk.CTkLabel(f, text="You're all set!",
                      font=ctk.CTkFont(size=22, weight="bold"),
