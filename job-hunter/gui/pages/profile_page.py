@@ -200,22 +200,202 @@ class ProfilePage(ctk.CTkFrame):
         top = ctk.CTkFrame(tab, fg_color="transparent")
         top.pack(fill="x", padx=8, pady=8)
         ctk.CTkLabel(top, text="Resume / CV", font=ctk.CTkFont(size=13, weight="bold"), text_color=self.colors["text"]).pack(side="left")
+
+        # AI parse button (pack right-most first so Import File appears to its left)
+        self._parse_btn = ctk.CTkButton(
+            top, text="✨ Parse with AI", width=130, height=28,
+            fg_color=self.colors["tag_bg"], hover_color="#388bfd",
+            command=self._parse_resume_with_ai,
+        )
+        self._parse_btn.pack(side="right", padx=4)
         ctk.CTkButton(top, text="Import File", width=100, height=28, fg_color=self.colors["panel_bg"], command=self._import_resume).pack(side="right", padx=4)
 
-        ctk.CTkLabel(tab, text="Paste or import your resume text (used for AI tailoring and matching):", font=ctk.CTkFont(size=11), text_color=self.colors["text_muted"]).pack(anchor="w", padx=8)
+        self._parse_status = ctk.CTkLabel(tab, text="", font=ctk.CTkFont(size=11), text_color=self.colors["text_muted"])
+        self._parse_status.pack(anchor="w", padx=8)
+
+        ctk.CTkLabel(tab, text="Import PDF or paste resume text. Then click 'Parse with AI' to auto-fill all profile fields.", font=ctk.CTkFont(size=11), text_color=self.colors["text_muted"]).pack(anchor="w", padx=8)
         self._resume_box = ctk.CTkTextbox(tab, fg_color=self.colors["content_bg"], border_color=self.colors["border"], border_width=1)
         self._resume_box.pack(fill="both", expand=True, padx=8, pady=4)
         ctk.CTkButton(tab, text="Save Resume", fg_color=self.colors["accent"], hover_color=self.colors["accent_hover"], command=self._save_resume).pack(anchor="e", padx=8, pady=6)
 
     def _import_resume(self):
-        path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
-        if path:
+        path = filedialog.askopenfilename(
+            filetypes=[
+                ("Resume files", "*.pdf *.txt"),
+                ("PDF files", "*.pdf"),
+                ("Text files", "*.txt"),
+                ("All files", "*.*"),
+            ]
+        )
+        if not path:
+            return
+        try:
+            if path.lower().endswith(".pdf"):
+                import pdfplumber
+                with pdfplumber.open(path) as pdf:
+                    pages_text = [page.extract_text() or "" for page in pdf.pages]
+                text = "\n".join(pages_text).strip()
+                if not text:
+                    messagebox.showwarning(
+                        "Scanned PDF",
+                        "No text could be extracted — this appears to be a scanned image PDF.\n"
+                        "Please use a text-based PDF or paste your resume manually.",
+                    )
+                    return
+            else:
+                with open(path, encoding="utf-8", errors="replace") as f:
+                    text = f.read()
+            self._resume_box.delete("1.0", "end")
+            self._resume_box.insert("1.0", text)
+            self._parse_status.configure(text="Resume imported. Click '✨ Parse with AI' to auto-fill your profile.")
+        except Exception as e:
+            messagebox.showerror("Import Error", str(e))
+
+    def _parse_resume_with_ai(self):
+        from core.settings import get as get_setting
+        api_key = get_setting("anthropic_api_key")
+        if not api_key:
+            messagebox.showwarning(
+                "API Key Required",
+                "Add your Anthropic API key in Settings → API Keys to use AI parsing.",
+            )
+            if self.nav_callback:
+                self.nav_callback("settings")
+            return
+
+        if not self._current_profile_id:
+            messagebox.showwarning("No Profile", "Select or create a profile first.")
+            return
+
+        resume_text = self._resume_box.get("1.0", "end").strip()
+        if len(resume_text) < 80:
+            messagebox.showwarning(
+                "Too Short",
+                "Import or paste your resume text first (at least 80 characters).",
+            )
+            return
+
+        self._parse_btn.configure(state="disabled", text="Parsing…")
+        self._parse_status.configure(text="Sending resume to Claude AI…")
+
+        import threading
+
+        def _worker():
             try:
-                text = open(path).read()
-                self._resume_box.delete("1.0", "end")
-                self._resume_box.insert("1.0", text)
+                from modules.ai.resume_parser import parse_resume
+                parsed = parse_resume(api_key, resume_text)
+                self.after(0, self._apply_parsed_resume, parsed)
             except Exception as e:
-                messagebox.showerror("Error", str(e))
+                self.after(0, self._on_parse_error, str(e))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _apply_parsed_resume(self, parsed: dict):
+        import json
+        from datetime import datetime
+
+        # Fill Basic Info StringVars
+        for parsed_key in ("name", "email", "phone", "location", "linkedin_url", "github_url", "portfolio_url", "headline"):
+            val = parsed.get(parsed_key, "")
+            if val and parsed_key in self._v:
+                self._v[parsed_key].set(val)
+
+        if parsed.get("summary"):
+            self._summary_box.delete("1.0", "end")
+            self._summary_box.insert("1.0", parsed["summary"])
+
+        skills_list = parsed.get("skills", [])
+        if skills_list:
+            self._skills_var.set(", ".join(skills_list))
+
+        now = datetime.utcnow().isoformat()
+        pid = self._current_profile_id
+
+        # Save basic info to DB immediately
+        execute_write(
+            """UPDATE profiles SET name=?, email=?, phone=?, location=?,
+               linkedin_url=?, github_url=?, portfolio_url=?, headline=?, summary=?,
+               skills=?, updated_at=? WHERE id=?""",
+            (
+                parsed.get("name", self._v["name"].get()),
+                parsed.get("email", self._v["email"].get()),
+                parsed.get("phone", ""),
+                parsed.get("location", ""),
+                parsed.get("linkedin_url", ""),
+                parsed.get("github_url", ""),
+                parsed.get("portfolio_url", ""),
+                parsed.get("headline", ""),
+                parsed.get("summary", ""),
+                json.dumps(skills_list),
+                now, pid,
+            ),
+        )
+
+        # Import work experience
+        experience = parsed.get("experience", [])
+        if experience:
+            replace = messagebox.askyesno(
+                "Import Work Experience",
+                f"Found {len(experience)} work experience entries.\n\nReplace existing experience? (No = append)",
+            )
+            if replace:
+                execute_write("DELETE FROM work_experience WHERE profile_id=?", (pid,))
+            for i, exp in enumerate(experience):
+                execute_write(
+                    """INSERT INTO work_experience
+                       (profile_id, company, title, location, start_date, end_date, current, description, sort_order)
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
+                    (
+                        pid,
+                        exp.get("company", ""),
+                        exp.get("title", ""),
+                        exp.get("location", ""),
+                        exp.get("start_date", ""),
+                        exp.get("end_date", ""),
+                        int(bool(exp.get("current", False))),
+                        exp.get("description", ""),
+                        i,
+                    ),
+                )
+            self._load_experience()
+
+        # Import education
+        education = parsed.get("education", [])
+        if education:
+            replace_edu = messagebox.askyesno(
+                "Import Education",
+                f"Found {len(education)} education entries.\n\nReplace existing education? (No = append)",
+            )
+            if replace_edu:
+                execute_write("DELETE FROM education WHERE profile_id=?", (pid,))
+            for i, edu in enumerate(education):
+                execute_write(
+                    """INSERT INTO education
+                       (profile_id, institution, degree, field_of_study, start_date, end_date, gpa, sort_order)
+                       VALUES (?,?,?,?,?,?,?,?)""",
+                    (
+                        pid,
+                        edu.get("institution", ""),
+                        edu.get("degree", ""),
+                        edu.get("field_of_study", ""),
+                        edu.get("start_date", ""),
+                        edu.get("end_date", ""),
+                        edu.get("gpa", ""),
+                        i,
+                    ),
+                )
+            self._load_education()
+
+        self._load_profile_list()
+        self._parse_btn.configure(state="normal", text="✨ Parse with AI")
+        self._parse_status.configure(
+            text=f"Parsed: {len(experience)} jobs, {len(education)} education, {len(skills_list)} skills imported. Review and save."
+        )
+
+    def _on_parse_error(self, msg: str):
+        self._parse_btn.configure(state="normal", text="✨ Parse with AI")
+        self._parse_status.configure(text="")
+        messagebox.showerror("Parse Failed", f"AI parsing error:\n{msg}")
 
     # ── Data loading & saving ─────────────────────────────────────────────────
     def _load_profile_list(self):

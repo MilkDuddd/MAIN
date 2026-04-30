@@ -24,3 +24,6 @@ python-dateutil>=2.9.0
 
 # ── Fuzzy text matching (resume keyword scoring) ─────────────────────────────
 rapidfuzz>=3.9.0
+
+# ── PDF resume import & text extraction ──────────────────────────────────────
+pdfplumber>=0.10.0
