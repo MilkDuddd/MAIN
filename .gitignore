@@ -10,6 +10,10 @@ venv/
 .venv/
 env/
 
+# Test / cache output
+.pytest_cache/
+.coverage
+
 # Build output
 dist/
 build_tmp/
