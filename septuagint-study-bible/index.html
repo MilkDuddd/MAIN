@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Septuagint Study Bible</title>
+  <meta name="description" content="A study Bible built around the Septuagint (LXX): parallel Greek and English, commentary, word studies, and personal notes." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%98%A6%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <button id="homeBtn" class="brand" title="Library">
+      <span class="brand-mark">☩</span>
+      <span class="brand-text">Septuagint<span class="brand-sub">Study Bible</span></span>
+    </button>
+    <div class="topbar-search">
+      <input id="globalSearch" type="search" placeholder="Search Greek, English, or your notes…  ( / )" autocomplete="off" />
+    </div>
+    <nav class="topbar-actions">
+      <button id="myStudyBtn" class="tb-btn" title="Your notes, highlights &amp; bookmarks">✦ My Study</button>
+      <button id="settingsBtn" class="tb-btn icon" title="Settings" aria-label="Settings">⚙</button>
+    </nav>
+  </header>
+
+  <main id="view" class="view" tabindex="-1"></main>
+
+  <!-- Study drawer -->
+  <div id="overlay" class="overlay" hidden></div>
+  <aside id="drawer" class="drawer" hidden aria-label="Study panel"></aside>
+
+  <!-- Modal (settings / my study / import-export) -->
+  <div id="modal" class="modal" hidden></div>
+
+  <!-- Data (public domain / CC0 — see SOURCES.md). Book text loaded on demand. -->
+  <script src="data/index.js"></script>
+  <script src="data/commentary.js"></script>
+  <script src="data/lexicon.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
